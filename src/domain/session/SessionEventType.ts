@@ -1,0 +1,1 @@
+export type SessionEventType =    | "CODING_STARTED"    | "COPY"    | "PASTE"    | "TAB_HIDDEN"    | "TAB_VISIBLE"    | "HINT_OPENED"    | "SOLUTION_VIEWED"    | "EDITORIAL_VIEWED"    | "SUBMISSION"    | "SOLVED";

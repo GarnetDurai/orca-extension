@@ -1,0 +1,1 @@
+export type Difficulty = "EASY" | "MEDIUM" | "HARD";export interface ProblemMetadata {    leetcodeId: number;    slug: string;    title: string;    difficulty: Difficulty;    topics: string[];    url: string;}

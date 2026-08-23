@@ -1,0 +1,1 @@
+import type { SessionEventType } from "./SessionEventType";export interface SessionEvent {    type: SessionEventType;    timestamp: number;}
