@@ -1,1 +1,27 @@
-{  "manifest_version": 3,  "name": "DSA Tracker",  "version": "1.0.0",  "description": "Tracks LeetCode problem-solving behavior and progress.",  "permissions": [    "storage"  ],  "host_permissions": [    "https://leetcode.com/*",    "http://localhost:8080/*"  ],  "content_scripts": [    {      "matches": [        "https://leetcode.com/problems/*"      ],      "js": [        "content/content.js"      ],      "run_at": "document_idle"    }  ],  "action": {    "default_title": "DSA Tracker"  }}
+{
+  "manifest_version": 3,
+  "name": "DSA Tracker",
+  "version": "1.0.0",
+  "description": "Tracks LeetCode problem-solving behavior and progress.",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://leetcode.com/*",
+    "http://localhost:8080/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://leetcode.com/problems/*"
+      ],
+      "js": [
+        "content/content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "DSA Tracker"
+  }
+}
