@@ -4,12 +4,16 @@
   "version": "1.0.0",
   "description": "Tracks LeetCode problem-solving behavior and progress.",
   "permissions": [
-    "storage"
+    "storage",
+    "webRequest"
   ],
   "host_permissions": [
     "https://leetcode.com/*",
     "http://localhost:8080/*"
   ],
+  "background": {
+    "service_worker": "background/background.js"
+  },
   "content_scripts": [
     {
       "matches": [
