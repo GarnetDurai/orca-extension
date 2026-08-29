@@ -4,6 +4,7 @@ import { ThinkingCodingTracker } from "./tracking/ThinkingCodingTracker";
 import { EditorActivityTracker } from "./tracking/EditorActivityTracker";
 import { TabVisibilityTracker } from "./tracking/TabVisibilityTracker";
 import { HintEditorialTracker } from "./tracking/HintEditorialTracker";
+import { SolutionTracker } from "./tracking/SolutionTracker";
 import { SubmissionTracker } from "./tracking/SubmissionTracker";
 
 const sessionManager = new SessionManager();
@@ -16,6 +17,7 @@ let editorActivityTracker: EditorActivityTracker | null = null;
 let thinkingCodingTracker: ThinkingCodingTracker | null = null;
 let tabVisibilityTracker: TabVisibilityTracker | null = null;
 let hintEditorialTracker: HintEditorialTracker | null = null;
+let solutionTracker: SolutionTracker | null = null;
 let submissionTracker: SubmissionTracker | null = null;
 
 /**
@@ -39,6 +41,9 @@ function cleanupPreviousTracking(endTime: number = Date.now()): void {
 
     hintEditorialTracker?.stop();
     hintEditorialTracker = null;
+
+    solutionTracker?.stop();
+    solutionTracker = null;
 
     submissionTracker?.stop();
     submissionTracker = null;
@@ -109,11 +114,15 @@ function processCurrentProblem(): boolean {
         thinkingCodingTracker?.recordTimeAway(awayDuration);
     });
 
-    // 4. Hint and Editorial / Solution usage tracker
+    // 4. Hint and Editorial usage tracker
     hintEditorialTracker = new HintEditorialTracker(session);
     hintEditorialTracker.start();
 
-    // 5. Submission and result tracker
+    // 5. Solution section / tab view tracker
+    solutionTracker = new SolutionTracker(session);
+    solutionTracker.start();
+
+    // 6. Submission and result tracker
     submissionTracker = new SubmissionTracker(session);
     submissionTracker.start((solvedAt) => {
         // Stop all active behavior trackers and finalize total solve duration at solvedAt

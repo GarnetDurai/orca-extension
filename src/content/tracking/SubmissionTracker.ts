@@ -309,25 +309,17 @@ export class SubmissionTracker {
     }
 
     /**
-     * Finds the highest-scoring visible exact result element on the current submission view.
+     * Finds the visible exact result on the current submission view.
+     * Priority:
+     * 1. If WRONG_ANSWER (or other failure state) is visible, it takes precedence over ACCEPTED
+     *    to prevent an old Run result ("Accepted") from masking a failed submission.
+     * 2. Else if ACCEPTED is visible, return ACCEPTED.
      */
     private findCurrentVisibleResult(): SubmissionResult | null {
-        const candidates = document.querySelectorAll("div, span, p, h1, h2, h3, h4");
-        const validMatches: { result: SubmissionResult; score: number }[] = [];
+        console.log("[DSA Tracker] Checking submission result candidates");
 
-        const contextKeywords = [
-            "testcases",
-            "passed",
-            "Input",
-            "Output",
-            "Expected",
-            "Runtime",
-            "Memory",
-            "Beats",
-            "Compile",
-            "Error",
-            "submission"
-        ];
+        const candidates = document.querySelectorAll("div, span, p, h1, h2, h3, h4");
+        const foundResults = new Set<SubmissionResult>();
 
         for (const el of Array.from(candidates)) {
             const text = el.textContent?.trim();
@@ -351,31 +343,48 @@ export class SubmissionTracker {
                 continue;
             }
 
-            // Score candidate based on ancestor submission context
-            let score = 1;
-            const container =
-                el.closest('[role="tabpanel"], [data-layout-path*="console"], [class*="console"]') ||
-                el.parentElement?.parentElement;
-            const containerText = container?.textContent || "";
+            const result = KNOWN_RESULT_TEXTS[text];
+            foundResults.add(result);
 
-            for (const keyword of contextKeywords) {
-                if (containerText.includes(keyword)) {
-                    score += 2;
-                }
+            if (result === "WRONG_ANSWER") {
+                console.log("[DSA Tracker] Wrong Answer detected");
+            } else if (result === "ACCEPTED") {
+                console.log("[DSA Tracker] Accepted detected");
             }
-
-            validMatches.push({
-                result: KNOWN_RESULT_TEXTS[text],
-                score
-            });
         }
 
-        if (validMatches.length === 0) {
+        if (foundResults.size === 0) {
             return null;
         }
 
-        // Sort by score descending to prefer the active submission result container
-        validMatches.sort((a, b) => b.score - a.score);
-        return validMatches[0].result;
+        // Priority 1: WRONG_ANSWER and failure results take precedence over ACCEPTED
+        if (foundResults.has("WRONG_ANSWER")) {
+            console.log("[DSA Tracker] Submission result selected: WRONG_ANSWER");
+            return "WRONG_ANSWER";
+        }
+        if (foundResults.has("TIME_LIMIT_EXCEEDED")) {
+            console.log("[DSA Tracker] Submission result selected: TIME_LIMIT_EXCEEDED");
+            return "TIME_LIMIT_EXCEEDED";
+        }
+        if (foundResults.has("MEMORY_LIMIT_EXCEEDED")) {
+            console.log("[DSA Tracker] Submission result selected: MEMORY_LIMIT_EXCEEDED");
+            return "MEMORY_LIMIT_EXCEEDED";
+        }
+        if (foundResults.has("RUNTIME_ERROR")) {
+            console.log("[DSA Tracker] Submission result selected: RUNTIME_ERROR");
+            return "RUNTIME_ERROR";
+        }
+        if (foundResults.has("COMPILE_ERROR")) {
+            console.log("[DSA Tracker] Submission result selected: COMPILE_ERROR");
+            return "COMPILE_ERROR";
+        }
+
+        // Priority 2: ACCEPTED
+        if (foundResults.has("ACCEPTED")) {
+            console.log("[DSA Tracker] Submission result selected: ACCEPTED");
+            return "ACCEPTED";
+        }
+
+        return null;
     }
 }
