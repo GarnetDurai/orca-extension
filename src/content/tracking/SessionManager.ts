@@ -20,6 +20,7 @@ export class SessionManager {
             pasteCount: 0,
             hintOpened: false,
             hintOpenCount: 0,
+            hintOpenedAt: null,
             solutionViewed: false,
             solutionViewedAt: null,
             editorialViewed: false,

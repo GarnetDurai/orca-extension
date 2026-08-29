@@ -16,6 +16,7 @@ export interface ProblemSession {
     pasteCount: number;
     hintOpened: boolean;
     hintOpenCount: number;
+    hintOpenedAt: number | null;
     solutionViewed: boolean;
     solutionViewedAt: number | null;
     editorialViewed: boolean;
