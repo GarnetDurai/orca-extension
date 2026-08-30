@@ -274,7 +274,8 @@ export class SubmissionTracker {
         this.session.events.push({
             type: "SUBMISSION",
             timestamp: now,
-            result
+            result,
+            submissionId: this.currentTrackingSubmissionId ?? undefined
         });
 
         // If solved / accepted

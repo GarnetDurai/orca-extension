@@ -130,10 +130,11 @@ export class HintEditorialTracker {
 
             this.session.events.push({
                 type: "HINT_OPENED",
-                timestamp: now
+                timestamp: now,
+                hintName
             });
 
-            console.log("[DSA Tracker] Hint opened");
+            console.log(`[DSA Tracker] Hint opened: ${hintName}`);
             console.log(`[DSA Tracker] Hint open count: ${this.session.hintOpenCount}`);
         } else {
             // State transition: OPEN -> CLOSED (closing does not increment count)

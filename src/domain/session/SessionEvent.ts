@@ -4,4 +4,6 @@ export interface SessionEvent {
     type: SessionEventType;
     timestamp: number;
     result?: string;
+    submissionId?: string;
+    hintName?: string;
 }

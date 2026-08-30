@@ -26,57 +26,6 @@ export class EditorActivityTracker {
         }
     };
 
-    private readonly handleCopy = (event: ClipboardEvent): void => {
-        const target = event.target;
-        if (!(target instanceof HTMLElement)) {
-            return;
-        }
-
-        const editor = target.closest(".monaco-editor");
-        if (!editor) {
-            return;
-        }
-
-        // Increment copy count and record event (strict privacy: no clipboard content is read)
-        this.session.copyCount++;
-        this.session.events.push({
-            type: "COPY",
-            timestamp: Date.now()
-        });
-
-        console.log("[DSA Tracker] Editor copy detected. Total copies:", this.session.copyCount);
-    };
-
-    private readonly handlePaste = (event: ClipboardEvent): void => {
-        const target = event.target;
-        if (!(target instanceof HTMLElement)) {
-            return;
-        }
-
-        const editor = target.closest(".monaco-editor");
-        if (!editor) {
-            return;
-        }
-
-        // Try detecting language on paste
-        this.detectLanguage(editor);
-
-        // Pasting code into the editor also counts as starting coding
-        if (!this.isCodingStarted) {
-            this.isCodingStarted = true;
-            this.onCodingStarted?.();
-        }
-
-        // Increment paste count and record event (strict privacy: no clipboard content is read)
-        this.session.pasteCount++;
-        this.session.events.push({
-            type: "PASTE",
-            timestamp: Date.now()
-        });
-
-        console.log("[DSA Tracker] Editor paste detected. Total pastes:", this.session.pasteCount);
-    };
-
     constructor(session: ProblemSession) {
         this.session = session;
         // If the session already had coding started (e.g. from earlier), sync state
@@ -94,8 +43,6 @@ export class EditorActivityTracker {
         this.isListening = true;
 
         document.addEventListener("keydown", this.handleKeyDown, true);
-        document.addEventListener("copy", this.handleCopy, true);
-        document.addEventListener("paste", this.handlePaste, true);
 
         // Check if language can be detected immediately
         this.detectLanguage();
@@ -107,8 +54,6 @@ export class EditorActivityTracker {
         }
 
         document.removeEventListener("keydown", this.handleKeyDown, true);
-        document.removeEventListener("copy", this.handleCopy, true);
-        document.removeEventListener("paste", this.handlePaste, true);
 
         this.onCodingStarted = null;
         this.isListening = false;
