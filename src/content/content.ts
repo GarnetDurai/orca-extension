@@ -6,6 +6,7 @@ import { TabVisibilityTracker } from "./tracking/TabVisibilityTracker";
 import { HintEditorialTracker } from "./tracking/HintEditorialTracker";
 import { SolutionTracker } from "./tracking/SolutionTracker";
 import { SubmissionTracker } from "./tracking/SubmissionTracker";
+import { SessionApiClient } from "./api/SessionApiClient";
 
 const sessionManager = new SessionManager();
 
@@ -131,6 +132,11 @@ function processCurrentProblem(): boolean {
         // End the ProblemSession immediately at the first Accepted submission
         const endedSession = sessionManager.endCurrentSession();
         console.log("[DSA Tracker] Session SOLVED and Ended:", endedSession);
+
+        // Upload the completed session to the backend
+        if (endedSession) {
+            SessionApiClient.uploadSession(endedSession);
+        }
     });
 
     return true;
