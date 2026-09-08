@@ -223,6 +223,37 @@ export class SessionApiClient {
     }
 
     /**
+     * Retrieves historical deterministic analytics across all completed sessions.
+     */
+    public static async getHistoricalAnalytics(timeWindow?: string): Promise<unknown | null> {
+        const token = await this.getAuthToken();
+        if (!token) {
+            console.warn("[DSA Tracker] Cannot fetch historical analytics: No auth token found.");
+            return null;
+        }
+
+        try {
+            const query = timeWindow ? `?timeWindow=${encodeURIComponent(timeWindow)}` : "";
+            const response = await fetch(`${BACKEND_BASE_URL}/analytics/historical${query}`, {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                return await response.json();
+            }
+
+            console.error(`[DSA Tracker] Failed to fetch historical analytics: HTTP ${response.status}`);
+            return null;
+        } catch (error) {
+            console.error("[DSA Tracker] Error fetching historical analytics from backend:", error);
+            return null;
+        }
+    }
+
+    /**
      * Converts a ProblemSession domain object to the backend ProblemSessionRequestDTO schema.
      */
     private static buildPayload(session: ProblemSession): Record<string, unknown> {
