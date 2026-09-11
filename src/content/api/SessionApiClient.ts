@@ -254,6 +254,36 @@ export class SessionApiClient {
     }
 
     /**
+     * Retrieves the on-demand user performance profile.
+     */
+    public static async getUserProfile(): Promise<unknown | null> {
+        const token = await this.getAuthToken();
+        if (!token) {
+            console.warn("[DSA Tracker] Cannot fetch user profile: No auth token found.");
+            return null;
+        }
+
+        try {
+            const response = await fetch(`${BACKEND_BASE_URL}/analytics/profile`, {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                return await response.json();
+            }
+
+            console.error(`[DSA Tracker] Failed to fetch user profile: HTTP ${response.status}`);
+            return null;
+        } catch (error) {
+            console.error("[DSA Tracker] Error fetching user profile from backend:", error);
+            return null;
+        }
+    }
+
+    /**
      * Converts a ProblemSession domain object to the backend ProblemSessionRequestDTO schema.
      */
     private static buildPayload(session: ProblemSession): Record<string, unknown> {
