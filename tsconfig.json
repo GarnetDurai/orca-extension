@@ -2,8 +2,9 @@
   "compilerOptions": {
     "target": "es2023",
     "module": "esnext",
-    "lib": ["ES2023", "DOM"],
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": ["node", "chrome"],
+    "jsx": "react-jsx",
     "allowArbitraryExtensions": true,
     "skipLibCheck": true,
 
@@ -20,5 +21,6 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/test"]
 }

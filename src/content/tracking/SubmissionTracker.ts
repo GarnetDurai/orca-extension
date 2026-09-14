@@ -33,6 +33,7 @@ export class SubmissionTracker {
     private pollTimer: number | null = null;
     private isListening = false;
     private onSolved: ((solvedAt: number) => void) | null = null;
+    private onAttempt: ((attempts: number) => void) | null = null;
 
     private readonly handleClick = (event: MouseEvent): void => {
         const target = event.target;
@@ -73,13 +74,14 @@ export class SubmissionTracker {
         this.session = session;
     }
 
-    public start(onSolved?: (solvedAt: number) => void): void {
+    public start(onSolved?: (solvedAt: number) => void, onAttempt?: (attempts: number) => void): void {
         if (this.isListening) {
             return;
         }
 
         this.isListening = true;
         this.onSolved = onSolved ?? null;
+        this.onAttempt = onAttempt ?? null;
         document.addEventListener("click", this.handleClick, true);
         document.addEventListener("keydown", this.handleKeyDown, true);
         chrome.runtime.onMessage.addListener(this.handleRuntimeMessage);
@@ -97,6 +99,7 @@ export class SubmissionTracker {
         this.lastConfirmedSubmissionId = null;
         this.isListening = false;
         this.onSolved = null;
+        this.onAttempt = null;
     }
 
     private initiateSubmission(): void {
@@ -264,6 +267,7 @@ export class SubmissionTracker {
 
         // Increment attempts exactly once per confirmed submission
         this.session.attempts++;
+        this.onAttempt?.(this.session.attempts);
 
         // Record persistent last confirmed submission ID
         if (this.currentTrackingSubmissionId) {

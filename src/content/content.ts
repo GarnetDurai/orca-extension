@@ -7,8 +7,32 @@ import { HintEditorialTracker } from "./tracking/HintEditorialTracker";
 import { SolutionTracker } from "./tracking/SolutionTracker";
 import { SubmissionTracker } from "./tracking/SubmissionTracker";
 import { SessionApiClient } from "./api/SessionApiClient";
+import type { ProblemSession } from "../domain/session/ProblemSession";
 
 const sessionManager = new SessionManager();
+
+function syncActiveSession(session: ProblemSession | null): void {
+    try {
+        if (session && !session.solved) {
+            chrome.storage.local.set({
+                activeProblemSession: {
+                    sessionId: session.sessionId,
+                    title: session.problem.title,
+                    difficulty: session.problem.difficulty,
+                    leetcodeId: session.problem.leetcodeId,
+                    url: session.problem.url,
+                    sessionStartedAt: session.sessionStartedAt,
+                    attempts: session.attempts,
+                    lastUpdated: Date.now()
+                }
+            });
+        } else {
+            chrome.storage.local.remove("activeProblemSession");
+        }
+    } catch {
+        // Safe catch for detached extension context
+    }
+}
 
 let lastUrl = window.location.href;
 let lastProcessedSlug: string | null = null;
@@ -33,6 +57,7 @@ function getSlugFromUrl(url: string): string | null {
  * Stop all behavior tracking associated with the current/previous problem.
  */
 function cleanupPreviousTracking(endTime: number = Date.now()): void {
+    syncActiveSession(null);
     // 1. Flush any pending time away before finalizing coding time
     tabVisibilityTracker?.stop();
     tabVisibilityTracker = null;
@@ -96,6 +121,7 @@ function processCurrentProblem(): boolean {
     // Create the new problem session
     const session = sessionManager.startSession(metadata);
     lastProcessedSlug = metadata.slug;
+    syncActiveSession(session);
 
     console.log("[DSA Tracker] Problem Metadata:", metadata);
     console.log("[DSA Tracker] Session Started:", session);
@@ -125,19 +151,25 @@ function processCurrentProblem(): boolean {
 
     // 6. Submission and result tracker
     submissionTracker = new SubmissionTracker(session);
-    submissionTracker.start((solvedAt) => {
-        // Stop all active behavior trackers and finalize total solve duration at solvedAt
-        cleanupPreviousTracking(solvedAt);
+    submissionTracker.start(
+        (solvedAt) => {
+            syncActiveSession(null);
+            // Stop all active behavior trackers and finalize total solve duration at solvedAt
+            cleanupPreviousTracking(solvedAt);
 
-        // End the ProblemSession immediately at the first Accepted submission
-        const endedSession = sessionManager.endCurrentSession();
-        console.log("[DSA Tracker] Session SOLVED and Ended:", endedSession);
+            // End the ProblemSession immediately at the first Accepted submission
+            const endedSession = sessionManager.endCurrentSession();
+            console.log("[DSA Tracker] Session SOLVED and Ended:", endedSession);
 
-        // Upload the completed session to the backend
-        if (endedSession) {
-            SessionApiClient.uploadSession(endedSession);
+            // Upload the completed session to the backend
+            if (endedSession) {
+                SessionApiClient.uploadSession(endedSession);
+            }
+        },
+        (_attempts) => {
+            syncActiveSession(session);
         }
-    });
+    );
 
     return true;
 }
@@ -200,3 +232,29 @@ function initialize(): void {
 }
 
 initialize();
+
+// Listen for messages from popup to provide instant active session data
+chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
+    if (request?.type === "GET_ACTIVE_SESSION") {
+        const current = sessionManager.getCurrentSession();
+        if (current && !current.solved) {
+            sendResponse({
+                active: true,
+                session: {
+                    sessionId: current.sessionId,
+                    title: current.problem.title,
+                    difficulty: current.problem.difficulty,
+                    leetcodeId: current.problem.leetcodeId,
+                    url: current.problem.url,
+                    sessionStartedAt: current.sessionStartedAt,
+                    attempts: current.attempts
+                }
+            });
+        } else {
+            sendResponse({ active: false });
+        }
+    }
+});
+
+window.addEventListener("pagehide", () => syncActiveSession(null));
+window.addEventListener("beforeunload", () => syncActiveSession(null));
