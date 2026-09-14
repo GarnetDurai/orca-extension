@@ -282,8 +282,8 @@ describe("Extension Dashboard V1 Tests", () => {
         expect(onViewAll).toHaveBeenCalledTimes(1);
     });
 
-    // 12. Open Dashboard opens Overview page
-    it("12. Open Dashboard opens Overview page in a new browser tab", async () => {
+    // 12. Open Dashboard requests temporary code, verifies Authorization header, and opens dashboard URL with code
+    it("12. Open Dashboard requests temporary code and opens dashboard URL with code without exposing JWT", async () => {
         vi.spyOn(ActiveSessionService, "getActiveSession").mockResolvedValue(null);
         vi.spyOn(RevisionApiService, "fetchTodayWorkload").mockResolvedValue({
             data: {
@@ -298,6 +298,12 @@ describe("Extension Dashboard V1 Tests", () => {
             isAuthError: false
         });
 
+        const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: async () => ({ code: "temp-sso-code-xyz" })
+        } as Response);
+
         render(<ExtensionDashboard />);
 
         await waitFor(() => {
@@ -308,8 +314,64 @@ describe("Extension Dashboard V1 Tests", () => {
         fireEvent.click(openBtn);
 
         await waitFor(() => {
-            expect(chrome.tabs.create).toHaveBeenCalledWith({ url: DEFAULT_CONFIG.overviewUrl });
+            expect(fetchSpy).toHaveBeenCalledWith(
+                "http://localhost:8080/auth/dashboard-code",
+                expect.objectContaining({
+                    method: "POST",
+                    headers: expect.objectContaining({
+                        "Authorization": "Bearer mock-jwt-token-xyz"
+                    })
+                })
+            );
+            expect(chrome.tabs.create).toHaveBeenCalledWith({
+                url: "http://localhost:5173/dashboard?code=temp-sso-code-xyz"
+            });
         });
+
+        // Verify that the extension JWT is NEVER placed into the URL
+        const calledUrl = (chrome.tabs.create as any).mock.calls[0][0].url;
+        expect(calledUrl).not.toContain("mock-jwt-token-xyz");
+        expect(calledUrl).toContain("code=temp-sso-code-xyz");
+    });
+
+    // 12b. Open Dashboard failure does NOT open dashboard and displays safe error
+    it("12b. Open Dashboard failure does NOT open dashboard and displays safe error", async () => {
+        vi.spyOn(ActiveSessionService, "getActiveSession").mockResolvedValue(null);
+        vi.spyOn(RevisionApiService, "fetchTodayWorkload").mockResolvedValue({
+            data: {
+                totalDue: 0,
+                dailyCapacity: 2,
+                reviewsCompletedToday: 0,
+                newProblemsSolvedToday: 0,
+                queue: []
+            },
+            error: null,
+            status: 200,
+            isAuthError: false
+        });
+
+        // Backend returns failure for dashboard-code
+        vi.spyOn(globalThis, "fetch").mockResolvedValue({
+            ok: false,
+            status: 500,
+            json: async () => ({ message: "Internal server error" })
+        } as Response);
+
+        render(<ExtensionDashboard />);
+
+        await waitFor(() => {
+            expect(screen.getByRole("button", { name: /Open Dashboard/i })).toBeInTheDocument();
+        });
+
+        const openBtn = screen.getByRole("button", { name: /Open Dashboard/i });
+        fireEvent.click(openBtn);
+
+        await waitFor(() => {
+            expect(screen.getByText("Failed to generate dashboard access code.")).toBeInTheDocument();
+        });
+
+        // Must NOT open tab without a code
+        expect(chrome.tabs.create).not.toHaveBeenCalled();
     });
 
     // 13. No stale current-problem information
