@@ -7,6 +7,7 @@ import { HintEditorialTracker } from "./tracking/HintEditorialTracker";
 import { SolutionTracker } from "./tracking/SolutionTracker";
 import { SubmissionTracker } from "./tracking/SubmissionTracker";
 import { SessionApiClient } from "./api/SessionApiClient";
+import { SessionQueueService } from "../services/sessionQueueService";
 import type { ProblemSession } from "../domain/session/ProblemSession";
 
 const sessionManager = new SessionManager();
@@ -163,7 +164,20 @@ function processCurrentProblem(): boolean {
 
             // Upload the completed session to the backend
             if (endedSession) {
-                SessionApiClient.uploadSession(endedSession);
+                SessionApiClient.uploadSession(endedSession)
+                    .then(async (res) => {
+                        if (res.success) {
+                            console.log("[DSA Tracker] Session uploaded successfully:", res.sessionId);
+                            SessionQueueService.flushPendingSessions().catch(() => {});
+                        } else {
+                            console.warn("[DSA Tracker] Upload deferred; queueing session:", res.sessionId);
+                            await SessionQueueService.queueSession(endedSession);
+                        }
+                    })
+                    .catch(async (err) => {
+                        console.error("[DSA Tracker] Upload failed, queueing session:", err);
+                        await SessionQueueService.queueSession(endedSession);
+                    });
             }
         },
         (_attempts) => {
@@ -258,3 +272,8 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
 
 window.addEventListener("pagehide", () => syncActiveSession(null));
 window.addEventListener("beforeunload", () => syncActiveSession(null));
+
+window.addEventListener("online", () => {
+    console.log("[DSA Tracker] Browser connectivity restored. Attempting pending session flush...");
+    SessionQueueService.flushPendingSessions().catch(() => {});
+});

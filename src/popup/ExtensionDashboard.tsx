@@ -9,9 +9,11 @@ import { useActiveSession } from "../hooks/useActiveSession";
 import { useTodayWorkload } from "../hooks/useTodayWorkload";
 import {
     AUTH_TOKEN_KEY,
+    REFRESH_TOKEN_KEY,
     USER_EMAIL_KEY,
     getDashboardConfig
 } from "../config/dashboardConfig";
+import { SessionQueueService } from "../services/sessionQueueService";
 
 export const ExtensionDashboard: React.FC = () => {
     const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -21,7 +23,7 @@ export const ExtensionDashboard: React.FC = () => {
     const { session, formattedTime, loading: sessionLoading } = useActiveSession();
     const { workload, loading: workloadLoading, error: workloadError, isAuthError, refetch } = useTodayWorkload();
 
-    // Check stored user email on mount
+    // Check stored user email on mount and attempt safe queue flush
     useEffect(() => {
         const checkAuth = async () => {
             try {
@@ -29,6 +31,8 @@ export const ExtensionDashboard: React.FC = () => {
                     const stored = await chrome.storage.local.get([AUTH_TOKEN_KEY, USER_EMAIL_KEY]);
                     if (stored[AUTH_TOKEN_KEY] && stored[USER_EMAIL_KEY]) {
                         setUserEmail(stored[USER_EMAIL_KEY] as string);
+                        // Trigger safe queue flush upon opening popup if authenticated
+                        SessionQueueService.flushPendingSessions().catch(() => {});
                     } else {
                         setUserEmail(null);
                     }
@@ -43,7 +47,7 @@ export const ExtensionDashboard: React.FC = () => {
     const handleSignOut = async () => {
         try {
             if (typeof chrome !== "undefined" && chrome.storage?.local) {
-                await chrome.storage.local.remove([AUTH_TOKEN_KEY, USER_EMAIL_KEY]);
+                await chrome.storage.local.remove([AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_EMAIL_KEY]);
             }
         } catch {
             // Ignore error

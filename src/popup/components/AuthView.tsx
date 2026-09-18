@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { AUTH_TOKEN_KEY, USER_EMAIL_KEY, getDashboardConfig } from "../../config/dashboardConfig";
+import { AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_EMAIL_KEY, getDashboardConfig } from "../../config/dashboardConfig";
+import { SessionQueueService } from "../../services/sessionQueueService";
 
 interface AuthViewProps {
     onAuthSuccess: (email: string) => void;
@@ -57,12 +58,17 @@ export const AuthView: React.FC<AuthViewProps> = ({
                 const data = await response.json();
                 if (data && data.token) {
                     if (typeof chrome !== "undefined" && chrome.storage?.local) {
-                        await chrome.storage.local.set({
+                        const toStore: Record<string, string> = {
                             [AUTH_TOKEN_KEY]: data.token,
                             [USER_EMAIL_KEY]: trimmedEmail
-                        });
+                        };
+                        if (data.refreshToken) {
+                            toStore[REFRESH_TOKEN_KEY] = data.refreshToken;
+                        }
+                        await chrome.storage.local.set(toStore);
                     }
                     onAuthSuccess(trimmedEmail);
+                    SessionQueueService.flushPendingSessions().catch(() => {});
                     return;
                 }
                 setError("Login failed: Invalid server response.");
@@ -119,6 +125,8 @@ export const AuthView: React.FC<AuthViewProps> = ({
                 const data = await response.json();
                 let token = data?.token;
 
+                let refreshToken = data?.refreshToken;
+
                 // Fallback: if backend register did not return a token, perform login
                 if (!token) {
                     const loginRes = await fetch(`${config.backendUrl}/auth/login`, {
@@ -129,17 +137,23 @@ export const AuthView: React.FC<AuthViewProps> = ({
                     if (loginRes.ok) {
                         const loginData = await loginRes.json();
                         token = loginData?.token;
+                        refreshToken = loginData?.refreshToken;
                     }
                 }
 
                 if (token) {
                     if (typeof chrome !== "undefined" && chrome.storage?.local) {
-                        await chrome.storage.local.set({
+                        const toStore: Record<string, string> = {
                             [AUTH_TOKEN_KEY]: token,
                             [USER_EMAIL_KEY]: trimmedEmail
-                        });
+                        };
+                        if (refreshToken) {
+                            toStore[REFRESH_TOKEN_KEY] = refreshToken;
+                        }
+                        await chrome.storage.local.set(toStore);
                     }
                     onAuthSuccess(trimmedEmail);
+                    SessionQueueService.flushPendingSessions().catch(() => {});
                     return;
                 }
 

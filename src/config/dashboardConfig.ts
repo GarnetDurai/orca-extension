@@ -11,6 +11,8 @@ export const DEFAULT_CONFIG: DashboardConfig = {
 };
 
 export const AUTH_TOKEN_KEY = "authToken";
+export const REFRESH_TOKEN_KEY = "refreshToken";
+export const PENDING_SESSIONS_QUEUE_KEY = "pendingSessionsQueue";
 export const USER_EMAIL_KEY = "userEmail";
 export const ACTIVE_SESSION_KEY = "activeProblemSession";
 export const DASHBOARD_CONFIG_KEY = "dashboardConfig";
