@@ -56,6 +56,7 @@ export class RevisionApiService {
                     queue: (body.queue || []).map((item: any) => ({
                         problemId: item.problemId,
                         leetcodeId: item.leetcodeId,
+                        leetcodeSlug: item.leetcodeSlug,
                         problemTitle: item.problemTitle || "Problem #" + item.leetcodeId,
                         difficulty: item.difficulty || "MEDIUM",
                         currentConfidence: Math.round(item.currentConfidence ?? 0),

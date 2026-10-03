@@ -437,7 +437,8 @@ export class SessionApiClient {
                 title: session.problem.title,
                 difficulty: session.problem.difficulty,
                 url: session.problem.url,
-                slug: session.problem.slug
+                slug: session.problem.slug,
+                leetcodeSlug: session.problem.slug
             },
             sessionStartedAt: session.sessionStartedAt,
             firstCodingAt: session.firstCodingAt,

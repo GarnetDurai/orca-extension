@@ -1,6 +1,7 @@
 export interface DueProblemItemData {
     problemId: number;
     leetcodeId: number;
+    leetcodeSlug?: string;
     problemTitle: string;
     difficulty: string;
     currentConfidence: number;

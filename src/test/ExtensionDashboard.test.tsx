@@ -4,6 +4,8 @@ import { ExtensionDashboard } from "../popup/ExtensionDashboard";
 import { CurrentProblemCard } from "../popup/components/CurrentProblemCard";
 import { TodaySummary } from "../popup/components/TodaySummary";
 import { DueProblemsList } from "../popup/components/DueProblemsList";
+import { DueProblemItem, getLeetcodeProblemUrl } from "../popup/components/DueProblemItem";
+import { extractSlug } from "../content/metadata/leetcodeDomParser";
 import { AuthView } from "../popup/components/AuthView";
 import { formatDuration } from "../hooks/useActiveSession";
 import { ActiveSessionService } from "../services/activeSessionService";
@@ -586,5 +588,74 @@ describe("Extension Dashboard V1 Tests", () => {
         expect(screen.getByText("Sign in to sync your progress")).toBeInTheDocument();
         expect(screen.getByText("Don't have an account?")).toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Create Account" })).toBeInTheDocument();
+    });
+
+    // 22. Correct slug extraction from LeetCode problem URLs
+    it("22. extractSlug correctly extracts the problem slug from normal and description URLs", () => {
+        expect(extractSlug("https://leetcode.com/problems/reorder-routes-to-make-all-paths-lead-to-the-city-zero/")).toBe(
+            "reorder-routes-to-make-all-paths-lead-to-the-city-zero"
+        );
+        expect(
+            extractSlug("https://leetcode.com/problems/reorder-routes-to-make-all-paths-lead-to-the-city-zero/description/")
+        ).toBe("reorder-routes-to-make-all-paths-lead-to-the-city-zero");
+        expect(extractSlug("https://leetcode.com/problems/two-sum?envType=study-plan-v2")).toBe("two-sum");
+        expect(extractSlug("https://leetcode.com/explore/")).toBeNull();
+    });
+
+    // 23. Open action generates slug URL and NOT numeric id URL
+    it("23. DueProblemItem Open action generates slug-based URL and does NOT use numeric id", () => {
+        const itemWithSlug = {
+            problemId: 21,
+            leetcodeId: 1466,
+            leetcodeSlug: "reorder-routes-to-make-all-paths-lead-to-the-city-zero",
+            problemTitle: "Reorder Routes to Make All Paths Lead to the City Zero",
+            difficulty: "MEDIUM",
+            currentConfidence: 75
+        };
+
+        render(<DueProblemItem item={itemWithSlug} />);
+
+        const openBtn = screen.getByRole("button", { name: /Open Reorder Routes to Make All Paths Lead to the City Zero on LeetCode/i });
+        expect(openBtn).toBeInTheDocument();
+
+        fireEvent.click(openBtn);
+
+        expect(chrome.tabs.create).toHaveBeenCalledWith({
+            url: "https://leetcode.com/problems/reorder-routes-to-make-all-paths-lead-to-the-city-zero/"
+        });
+        expect(chrome.tabs.create).not.toHaveBeenCalledWith({
+            url: "https://leetcode.com/problems/1466/"
+        });
+    });
+
+    // 24. Missing slug falls back safely to numeric ID
+    it("24. DueProblemItem Open action falls back safely to numeric ID when slug is missing", () => {
+        const itemWithoutSlug = {
+            problemId: 1,
+            leetcodeId: 1,
+            problemTitle: "Two Sum",
+            difficulty: "EASY",
+            currentConfidence: 90
+        };
+
+        render(<DueProblemItem item={itemWithoutSlug} />);
+
+        const openBtn = screen.getByRole("button", { name: /Open Two Sum on LeetCode/i });
+        expect(openBtn).toBeInTheDocument();
+
+        fireEvent.click(openBtn);
+
+        expect(chrome.tabs.create).toHaveBeenCalledWith({
+            url: "https://leetcode.com/problems/1/"
+        });
+    });
+
+    // 25. getLeetcodeProblemUrl handles missing slug and invalid ID safely
+    it("25. getLeetcodeProblemUrl handles missing slug and ID safely without inventing invalid URLs", () => {
+        expect(getLeetcodeProblemUrl("two-sum", 1)).toBe("https://leetcode.com/problems/two-sum/");
+        expect(getLeetcodeProblemUrl(undefined, 1)).toBe("https://leetcode.com/problems/1/");
+        expect(getLeetcodeProblemUrl("", 1)).toBe("https://leetcode.com/problems/1/");
+        expect(getLeetcodeProblemUrl(undefined, undefined)).toBeNull();
+        expect(getLeetcodeProblemUrl("", 0)).toBeNull();
     });
 });

@@ -1,7 +1,7 @@
 import type { Difficulty } from "../../domain/problem/ProblemMetadata";
 
 export function extractSlug(url: string): string | null {
-    const match = url.match(/\/problems\/([^/]+)/);
+    const match = url.match(/\/problems\/([^/?#]+)/);
     return match ? match[1] : null;
 }
 

@@ -34,6 +34,7 @@ export function extractProblemMetadata(): ProblemMetadata | null {
     return {
         leetcodeId: parsedHeading.leetcodeId,
         slug,
+        leetcodeSlug: slug,
         title: parsedHeading.title,
         difficulty,
         topics,

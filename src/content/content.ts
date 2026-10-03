@@ -21,6 +21,7 @@ function syncActiveSession(session: ProblemSession | null): void {
                     title: session.problem.title,
                     difficulty: session.problem.difficulty,
                     leetcodeId: session.problem.leetcodeId,
+                    leetcodeSlug: session.problem.slug,
                     url: session.problem.url,
                     sessionStartedAt: session.sessionStartedAt,
                     attempts: session.attempts,
@@ -50,7 +51,7 @@ let submissionTracker: SubmissionTracker | null = null;
  * Extract the problem slug directly from the current URL.
  */
 function getSlugFromUrl(url: string): string | null {
-    const match = url.match(/\/problems\/([^/]+)/);
+    const match = url.match(/\/problems\/([^/?#]+)/);
     return match ? match[1] : null;
 }
 
